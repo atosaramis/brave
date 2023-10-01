@@ -1,51 +1,69 @@
-# Copyright (c) Streamlit Inc. (2018-2022) Snowflake Inc. (2022)
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# app.py
 
 import streamlit as st
-from streamlit.logger import get_logger
+import requests
+import datetime
 
-LOGGER = get_logger(__name__)
+BRAVE_API_ENDPOINT = "https://api.search.brave.com/news"
+API_KEY = "YOUR_BRAVE_API_KEY"
 
+@st.cache
+def brave_search(query, page=1):
+    headers = {
+        "x-rapidapi-key": API_KEY,
+        "x-rapidapi-host": "api.search.brave.com"
+    }
+    params = {"q": query, "page": page}
+    response = requests.get(BRAVE_API_ENDPOINT, headers=headers, params=params)
+    return response.json()
 
-def run():
-    st.set_page_config(
-        page_title="Hello",
-        page_icon="👋",
-    )
+st.title("Brave Search Interface")
 
-    st.write("# Welcome to Streamlit! 👋")
+# Search Bar
+search_query = st.text_input("Enter your search query:")
 
-    st.sidebar.success("Select a demo above.")
+# Filters
+date_filter = st.date_input("Filter by Date", datetime.date.today())
+sort_order = st.selectbox("Sort By", ["Relevance", "Date"])
 
-    st.markdown(
-        """
-        Streamlit is an open-source app framework built specifically for
-        Machine Learning and Data Science projects.
-        **👈 Select a demo from the sidebar** to see some examples
-        of what Streamlit can do!
-        ### Want to learn more?
-        - Check out [streamlit.io](https://streamlit.io)
-        - Jump into our [documentation](https://docs.streamlit.io)
-        - Ask a question in our [community
-          forums](https://discuss.streamlit.io)
-        ### See more complex demos
-        - Use a neural net to [analyze the Udacity Self-driving Car Image
-          Dataset](https://github.com/streamlit/demo-self-driving)
-        - Explore a [New York City rideshare dataset](https://github.com/streamlit/demo-uber-nyc-pickups)
-    """
-    )
+# Search Button
+if st.button("Search"):
+    results = brave_search(search_query)
+    if 'data' in results:
+        for article in results['data']:
+            st.subheader(article['title'])
+            st.write(article['description'])
+            st.write(article['url'])
+            st.write("---")
+    else:
+        st.error("Error fetching results. Please try again.")
 
+# Pagination
+page = st.slider("Page", 1, 10)
+if page > 1:
+    results = brave_search(search_query, page)
+    for article in results['data']:
+        st.subheader(article['title'])
+        st.write(article['description'])
+        st.write(article['url'])
+        st.write("---")
 
-if __name__ == "__main__":
-    run()
+# Error Handling
+try:
+    results = brave_search(search_query)
+except requests.exceptions.RequestException as e:
+    st.error(f"API Error: {e}")
+
+# API Key Management
+api_key_input = st.text_input("Enter your API key:", type="password")
+if api_key_input:
+    API_KEY = api_key_input
+
+# Theming & Styling (You can expand on this with custom CSS and more)
+st.markdown("""
+<style>
+    body {
+        background-color: #f4f4f4;
+    }
+</style>
+""", unsafe_allow_html=True)
