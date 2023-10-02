@@ -1,47 +1,38 @@
+# app.py
+
 import streamlit as st
 import requests
 
-BRAVE_API_ENDPOINT = "https://api.search.brave.com/news"
+BRAVE_API_ENDPOINT = "https://api.search.brave.com/res/v1/web/search"
+API_KEY = "YOUR_BRAVE_API_KEY"  # Replace with your actual Brave API key
 
-def brave_search(api_key, query):
+def brave_search(query):
     headers = {
-        "x-rapidapi-key": api_key,
-        "x-rapidapi-host": "api.search.brave.com"
+        "x-subscription-token": API_KEY,
+        "accept": "application/json"
     }
     params = {"q": query}
     response = requests.get(BRAVE_API_ENDPOINT, headers=headers, params=params)
-    
-    # Check if the response status is not 200 OK
-    if response.status_code != 200:
-        st.error(f"Error {response.status_code}: {response.text}")
-        return None
-
-    # Check if the response content type is not JSON
-    if 'application/json' not in response.headers.get('Content-Type', ''):
-        st.error("The response from the server is not in JSON format.")
-        st.text(response.text)
-        return None
-
-    # Try to parse the response as JSON and handle any JSONDecodeError
-    try:
-        return response.json()
-    except requests.exceptions.JSONDecodeError:
-        st.error("Failed to decode the response from the server. The response might not be in JSON format.")
-        st.text(response.text)
-        return None
+    return response.json()
 
 st.title("Brave Search Interface")
 
-# Input for API Key at the top of the page
-api_key = st.text_input("Enter your Brave API key:", type="password")
-
-# Input for Search Query without a default value
+# Search Bar
 search_query = st.text_input("Enter your search query:")
 
-if st.button("Search") and api_key:
-    results = brave_search(api_key, search_query)
-    if results and 'data' in results:
+# Search Button
+if st.button("Search"):
+    results = brave_search(search_query)
+    if 'data' in results:
         for article in results['data']:
-            st.markdown(f"### [{article['title']}]({article['url']})")
-            st.markdown(article['description'])
+            st.subheader(article['title'])
+            st.write(article['description'])
+            st.write(article['url'])
             st.write("---")
+    else:
+        st.error("Error fetching results. Please try again.")
+
+# API Key Management
+api_key_input = st.text_input("Enter your API key:", type="password")
+if api_key_input:
+    API_KEY = api_key_input
