@@ -1,38 +1,49 @@
-# app.py
-
+# Import necessary libraries
 import streamlit as st
 import requests
 
-BRAVE_API_ENDPOINT = "https://api.search.brave.com/res/v1/web/search"
-API_KEY = "YOUR_BRAVE_API_KEY"  # Replace with your actual Brave API key
+# Define the main function for the Streamlit app
+def main():
+    st.title("Brave Search API Explorer")
 
-def brave_search(query):
-    headers = {
-        "x-subscription-token": API_KEY,
-        "accept": "application/json"
-    }
-    params = {"q": query}
-    response = requests.get(BRAVE_API_ENDPOINT, headers=headers, params=params)
-    return response.json()
+    # Input for API Key
+    api_key = st.text_input("Enter your Brave Search API Key:", type="password")
 
-st.title("Brave Search Interface")
+    # Input for search term
+    search_term = st.text_input("Enter your search term:")
 
-# Search Bar
-search_query = st.text_input("Enter your search query:")
+    # Button to trigger the search
+    if st.button("Search"):
+        if not api_key or not search_term:
+            st.warning("Please provide both API Key and Search Term.")
+            return
 
-# Search Button
-if st.button("Search"):
-    results = brave_search(search_query)
-    if 'data' in results:
-        for article in results['data']:
-            st.subheader(article['title'])
-            st.write(article['description'])
-            st.write(article['url'])
-            st.write("---")
-    else:
-        st.error("Error fetching results. Please try again.")
+        # Hypothetical API endpoint for Brave Search
+        url = "https://api.bravesearch.com/search"
 
-# API Key Management
-api_key_input = st.text_input("Enter your API key:", type="password")
-if api_key_input:
-    API_KEY = api_key_input
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "query": search_term
+        }
+
+        response = requests.post(url, headers=headers, json=payload)
+
+        if response.status_code == 200:
+            data = response.json()
+            # Displaying the results in markdown format
+            st.markdown("## Results")
+            for result in data.get("results", []):
+                st.markdown(f"### {result['title']}")
+                st.markdown(result['description'])
+                st.markdown(f"[Read more]({result['url']})")
+                st.write("---")
+        else:
+            st.error("Failed to fetch results. Please check your API key and try again.")
+
+# Run the Streamlit app
+if __name__ == "__main__":
+    main()
